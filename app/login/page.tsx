@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 
-export default function LoginPage() {
+function LoginContent() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -193,5 +193,17 @@ export default function LoginPage() {
       </div>
 
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#FAF8F5]">
+        <div className="text-brand-green font-medium font-serif text-lg animate-pulse">Loading Login...</div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

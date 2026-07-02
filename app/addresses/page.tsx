@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '../components/layout/Header';
 import Footer from '../components/home/Footer';
 import { useAuth, Address } from '../lib/AuthContext';
 
-export default function AddressesPage() {
+function AddressesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromCheckout = searchParams.get('from') === 'checkout';
@@ -330,5 +330,17 @@ export default function AddressesPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function AddressesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center font-sans text-neutral-500">
+        Loading Addresses...
+      </div>
+    }>
+      <AddressesContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../components/layout/Header';
@@ -8,7 +8,7 @@ import Footer from '../components/home/Footer';
 import { ProductCard } from '../components/ui/ProductCard';
 import { products } from '../lib/mockData';
 
-export default function SearchResultsPage() {
+function SearchResultsContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
 
@@ -70,5 +70,17 @@ export default function SearchResultsPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
+        <div className="text-brand-green font-medium font-serif text-lg animate-pulse">Loading Search Results...</div>
+      </div>
+    }>
+      <SearchResultsContent />
+    </Suspense>
   );
 }
