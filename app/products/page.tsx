@@ -217,13 +217,34 @@ function ProductsContent() {
           <span className="text-brand-green font-medium">All Products</span>
         </div>
 
+        {/* Mobile category selector (compact) */}
+        <div className="md:hidden mb-4">
+          <label className="text-xs text-neutral-400 font-sans block mb-2">Category</label>
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full appearance-none bg-white border border-neutral-200 rounded-xl py-2 pl-4 pr-10 text-sm text-neutral-800 font-sans font-medium focus:outline-none focus:ring-1 focus:ring-brand-green/20 focus:border-brand-green/50"
+            >
+              {allCategories.map(cat => (
+                <option key={cat.id} value={cat.id === 'all' ? 'All' : cat.name}>{cat.name}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-neutral-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
         {/* Sidebar + Product List Wrapper */}
         <div className="flex flex-col md:flex-row gap-8 items-start">
           
           {/* Left Sidebar: Filters */}
           <aside className="w-full md:w-64 shrink-0 bg-white border border-neutral-100 rounded-3xl p-6 shadow-sm md:sticky md:top-24 md:max-h-[calc(100vh-120px)] md:overflow-y-auto">
-            {/* Categories Section */}
-            <div className="mb-8">
+            {/* Categories Section (desktop only) */}
+            <div className="hidden md:block mb-8">
               <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider mb-4 font-sans">
                 Categories
               </h3>

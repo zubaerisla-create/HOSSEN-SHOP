@@ -346,7 +346,7 @@ export const Header: React.FC = () => {
             className="fixed inset-0 bg-black/45 backdrop-blur-[1.5px] z-[9999] transition-opacity duration-300 animate-in fade-in"
           />
           {/* Drawer Panel */}
-          <div className="fixed top-0 right-0 h-screen w-72 bg-[#FAF8F5] shadow-2xl z-[10000] p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
+          <div className="fixed top-0 right-0 h-screen w-80 max-w-full bg-[#FAF8F5] shadow-2xl z-[10000] p-6 flex flex-col gap-6 overflow-y-auto animate-in slide-in-from-right duration-300">
             
             {/* Drawer Header */}
             <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
@@ -381,28 +381,28 @@ export const Header: React.FC = () => {
               <Link
                 href="/"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-600 hover:text-brand-green hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
+                className="min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-800 hover:text-brand-green hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
               >
                 <Home className="w-4 h-4 text-neutral-400" />
-                Home
+                <span className="truncate">Home</span>
               </Link>
               
               <Link
                 href="/products"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-600 hover:text-brand-green hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
+                className="min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-800 hover:text-brand-green hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
               >
                 <ShoppingBag className="w-4 h-4 text-neutral-400" />
-                Products
+                <span className="truncate">Products</span>
               </Link>
 
               <Link
                 href="/deals"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3.5 py-3 px-4 rounded-xl text-brand-orange hover:text-brand-orange-hover hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
+                className="min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-brand-orange hover:text-brand-orange-hover hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
               >
                 <Percent className="w-4 h-4 text-brand-orange shrink-0" />
-                Deals
+                <span className="truncate">Deals</span>
               </Link>
 
               {/* Logged-in Links */}
@@ -413,38 +413,38 @@ export const Header: React.FC = () => {
                   <Link
                     href="/orders"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
+                    className="min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-800 hover:text-neutral-900 hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
                   >
                     <ClipboardList className="w-4 h-4 text-neutral-400" />
-                    My Orders
+                    <span className="truncate">My Orders</span>
                   </Link>
 
                   <Link
                     href="/addresses"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
+                    className="min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-neutral-800 hover:text-neutral-900 hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
                   >
                     <MapPin className="w-4 h-4 text-neutral-400" />
-                    Addresses
+                    <span className="truncate">Addresses</span>
                   </Link>
 
                   <Link
                     href="/admin"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3.5 py-3 px-4 rounded-xl text-[#FF5C00] hover:text-brand-orange-hover hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
+                    className="min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-[#FF5C00] hover:text-brand-orange-hover hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
                   >
                     <ShieldAlert className="w-4 h-4 text-[#FF5C00]" />
-                    Admin Panel
+                    <span className="truncate">Admin Panel</span>
                   </Link>
 
                   <div className="h-[1px] bg-neutral-100 my-2" />
 
                   <button
                     onClick={() => { setIsMobileMenuOpen(false); logout(); }}
-                    className="w-full flex items-center gap-3.5 py-3 px-4 rounded-xl text-[#EF4444] hover:bg-[#FEF2F2] font-bold transition-all text-left cursor-pointer"
+                    className="w-full min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-[#EF4444] hover:bg-[#FEF2F2] font-bold transition-all text-left cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 text-[#EF4444]" />
-                    Logout
+                    <span className="truncate">Logout</span>
                   </button>
                 </>
               ) : (
@@ -454,10 +454,10 @@ export const Header: React.FC = () => {
                   <Link
                     href="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3.5 py-3 px-4 rounded-xl text-brand-green hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
+                    className="min-w-0 flex items-center gap-3.5 py-3 px-4 rounded-xl text-brand-green hover:bg-white border border-transparent hover:border-neutral-100 font-bold transition-all"
                   >
                     <LogIn className="w-4 h-4 text-brand-green" />
-                    Sign In
+                    <span className="truncate">Sign In</span>
                   </Link>
                 </>
               )}

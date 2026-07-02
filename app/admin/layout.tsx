@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AdminProvider, useAdmin } from './AdminContext';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Menu, X } from 'lucide-react';
 
 // ── Nav data ────────────────────────────────────────────────
 interface NavItem { label: string; href: string; icon: React.ReactNode }
@@ -136,6 +136,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,10 +181,21 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] flex font-sans text-left">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:flex-row font-sans text-left">
 
-      {/* ── Sidebar ── */}
-      <aside className="w-64 bg-white border-r border-neutral-100 flex flex-col justify-between p-5 shrink-0 sticky top-0 h-screen overflow-y-auto">
+      {/* Mobile top bar (small screens) */}
+      <div className="md:hidden bg-white border-b border-neutral-100 p-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-md text-neutral-700">
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="font-serif text-lg font-bold text-neutral-800">Admin Panel</span>
+        </div>
+        <button onClick={handleLogout} className="text-sm text-red-600 font-bold">Logout</button>
+      </div>
+
+      {/* ── Sidebar (desktop only) ── */}
+      <aside className="hidden md:flex w-64 bg-white border-r border-neutral-100 flex-col justify-between p-5 shrink-0 sticky top-0 h-screen overflow-y-auto">
         <div className="flex flex-col gap-6">
 
           {/* Logo */}
@@ -226,6 +238,40 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           Exit
         </button>
       </aside>
+
+      {/* Mobile sidebar drawer */}
+      {isSidebarOpen && (
+        <>
+          <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/40 z-50" />
+          <div className="fixed left-0 top-0 h-full w-72 bg-white z-60 p-4 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#0F2C1F]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+                <span className="font-serif text-lg font-bold">Admin Panel</span>
+              </div>
+              <button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-md">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <nav className="flex flex-col gap-2">
+              <Link href="/admin" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer text-sm font-bold ${pathname === '/admin' ? 'bg-[#0F2C1F] text-white' : 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50'}`}>Dashboard</Link>
+              {NAV_GROUPS.map(g => (
+                <div key={g.id} className="mb-2">
+                  <div className="font-bold px-3 py-2 text-neutral-600">{g.label}</div>
+                  <div className="flex flex-col ml-2">
+                    {g.items.map(item => (
+                      <Link key={item.href} href={item.href} className="px-3 py-2 rounded-md text-sm text-neutral-600 hover:bg-neutral-50">{item.label}</Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </div>
+        </>
+      )}
 
       {/* Main */}
       <main className="flex-grow p-8 overflow-y-auto h-screen w-full">
