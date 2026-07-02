@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Zap, Search, Package, CheckCircle, XCircle, Tag } from 'lucide-react';
-import { products as defaultProducts } from '../../lib/mockData';
+import { useAdmin } from '../AdminContext';
 
 interface AdminProduct {
   id: string;
@@ -20,7 +20,7 @@ interface AdminProduct {
 }
 
 export default function AdminFlashDealsPage() {
-  const [productsList, setProductsList] = useState<AdminProduct[]>([]);
+  const { productsList, updateProduct } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'all'>('active');
   const [toastMsg, setToastMsg] = useState('');
@@ -28,31 +28,21 @@ export default function AdminFlashDealsPage() {
   const [editLabel, setEditLabel] = useState('');
   const [editDiscount, setEditDiscount] = useState('');
 
-  // Load products from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('hossen_shop_admin_products');
-    if (saved) {
-      try { setProductsList(JSON.parse(saved)); } catch { setProductsList(defaultProducts as any); }
-    } else {
-      setProductsList(defaultProducts as any);
-    }
-  }, []);
-
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3500);
   };
 
-  const persist = (updated: AdminProduct[]) => {
-    setProductsList(updated);
-    localStorage.setItem('hossen_shop_admin_products', JSON.stringify(updated));
-  };
-
-  const toggleFlashDeal = (id: string, enable: boolean) => {
-    const updated = productsList.map(p =>
-      p.id === id ? { ...p, isFlashDeal: enable } : p
-    );
-    persist(updated);
+  const toggleFlashDeal = async (id: string, enable: boolean) => {
+    const p = productsList.find(x => x.id === id);
+    if (!p) return;
+    const updated = { 
+      ...p, 
+      isFlashDeal: enable,
+      flashLabel: enable ? p.flashLabel : undefined,
+      flashDiscount: enable ? p.flashDiscount : undefined
+    };
+    await updateProduct(updated);
     showToast(enable ? '⚡ Added to Flash Deals!' : 'Removed from Flash Deals');
   };
 
@@ -62,13 +52,15 @@ export default function AdminFlashDealsPage() {
     setEditDiscount(p.flashDiscount?.toString() || p.discount?.toString() || '');
   };
 
-  const saveEdit = (id: string) => {
-    const updated = productsList.map(p =>
-      p.id === id
-        ? { ...p, flashLabel: editLabel.trim() || undefined, flashDiscount: editDiscount ? parseFloat(editDiscount) : undefined }
-        : p
-    );
-    persist(updated);
+  const saveEdit = async (id: string) => {
+    const p = productsList.find(x => x.id === id);
+    if (!p) return;
+    const updated = {
+      ...p,
+      flashLabel: editLabel.trim() || undefined,
+      flashDiscount: editDiscount ? parseFloat(editDiscount) : undefined
+    };
+    await updateProduct(updated);
     setEditingId(null);
     showToast('Flash Deal settings saved!');
   };

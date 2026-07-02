@@ -7,20 +7,28 @@ import AdminCharts from '../components/admin/AdminCharts';
 import { DollarSign, ShoppingBag, Users, Package, AlertTriangle, ArrowUpRight } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { ordersList, productsList } = useAdmin();
+  const { ordersList, productsList, dashboardStats } = useAdmin();
 
   // Stats Calculations
   const stats = useMemo(() => {
+    if (dashboardStats?.stats) {
+      return {
+        totalOrders: dashboardStats.stats.totalOrders,
+        uniqueUsers: dashboardStats.stats.uniqueUsers,
+        totalProducts: dashboardStats.stats.totalProducts,
+        outOfStock: dashboardStats.stats.outOfStock,
+        totalEarn: dashboardStats.stats.totalEarn
+      };
+    }
+
     const totalOrders = ordersList.length;
-    // Mock users count or unique customer emails
-    const uniqueUsers = new Set(ordersList.map(o => o.customerEmail)).size + 780; 
+    const uniqueUsers = new Set(ordersList.map(o => o.customerEmail)).size; 
     const totalProducts = productsList.length;
     const outOfStock = productsList.filter(p => p.stock === 0).length;
-    // Calculate total earnings from placed orders + mockup base sales
-    const totalEarn = ordersList.reduce((sum, order) => sum + order.total, 0) + 128540.50;
+    const totalEarn = ordersList.reduce((sum, order) => sum + order.total, 0);
 
     return { totalOrders, uniqueUsers, totalProducts, outOfStock, totalEarn };
-  }, [ordersList, productsList]);
+  }, [ordersList, productsList, dashboardStats]);
 
   return (
     <div className="flex flex-col gap-8 font-sans">
@@ -136,7 +144,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* Interactive Charts Dashboard */}
-      <AdminCharts />
+      <AdminCharts 
+        monthlySalesData={dashboardStats?.monthlySalesData}
+        categorySalesData={dashboardStats?.categorySalesData}
+      />
 
       {/* Recent Orders Card matching layout */}
       <div className="bg-white border border-neutral-100 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col gap-6">

@@ -6,41 +6,97 @@ import { useSearchParams } from 'next/navigation';
 import Header from '../components/layout/Header';
 import Footer from '../components/home/Footer';
 import ProductCard from '../components/ui/ProductCard';
+import { Product, Category } from '../lib/types';
 import { products, categories } from '../lib/mockData';
+import { api } from '../lib/api';
+
+interface DisplayProduct extends Product {
+  category: string;
+  createdAt?: string;
+}
+
+interface BackendProduct {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number | null;
+  unit: string;
+  image: string;
+  category?: {
+    id: string;
+    name: string;
+  } | null;
+  rating?: number | null;
+  ratingCount?: number | null;
+  discount?: number | null;
+  createdAt?: string;
+}
 
 function ProductsContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category') || 'All';
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [productsList, setProductsList] = useState<any[]>([]);
-  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [productsList, setProductsList] = useState<DisplayProduct[]>([]);
+  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
 
   useEffect(() => {
-    // Load products from localStorage or fallback
-    const savedProds = localStorage.getItem('hossen_shop_admin_products');
-    if (savedProds) {
+    const loadData = async () => {
       try {
-        setProductsList(JSON.parse(savedProds));
-      } catch (e) {
-        console.error(e);
-        setProductsList(products);
-      }
-    } else {
-      setProductsList(products);
-    }
+        const [prods, cats] = await Promise.all([
+          api.getProducts(),
+          api.getCategories(),
+        ]);
+        
+        if (prods && prods.length > 0) {
+          setProductsList(prods.map((p: BackendProduct) => ({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            originalPrice: p.originalPrice || undefined,
+            unit: p.unit,
+            image: p.image,
+            category: p.category?.name || 'Fruits & Vegetables',
+            rating: p.rating || 4.5,
+            ratingCount: p.ratingCount || 12,
+            discount: p.discount || undefined,
+            createdAt: p.createdAt
+          })));
+        } else {
+          setProductsList(products as DisplayProduct[]);
+        }
 
-    // Load categories from localStorage or fallback
-    const savedCats = localStorage.getItem('hossen_shop_admin_categories');
-    if (savedCats) {
-      try {
-        setCategoriesList(JSON.parse(savedCats));
-      } catch (e) {
-        console.error(e);
-        setCategoriesList(categories);
+        if (cats && cats.length > 0) {
+          setCategoriesList(cats);
+        } else {
+          setCategoriesList(categories);
+        }
+      } catch (err) {
+        console.error('Failed to load products/categories from backend:', err);
+        // Fallback
+        const savedProds = localStorage.getItem('hossen_shop_admin_products');
+        if (savedProds) {
+          try {
+            setProductsList(JSON.parse(savedProds));
+          } catch (e) {
+            setProductsList(products as DisplayProduct[]);
+          }
+        } else {
+          setProductsList(products as DisplayProduct[]);
+        }
+
+        const savedCats = localStorage.getItem('hossen_shop_admin_categories');
+        if (savedCats) {
+          try {
+            setCategoriesList(JSON.parse(savedCats));
+          } catch (e) {
+            setCategoriesList(categories);
+          }
+        } else {
+          setCategoriesList(categories);
+        }
       }
-    } else {
-      setCategoriesList(categories);
-    }
+    };
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -123,8 +179,18 @@ function ProductsContent() {
     } else if (sortBy === 'rating') {
       result.sort((a, b) => b.rating - a.rating);
     } else {
-      // 'newest' / default order by ID (reversed for newest first)
-      result.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+      // 'newest' / default order by createdAt, fallback to numeric/UUID comparison
+      result.sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        const aNum = parseInt(a.id);
+        const bNum = parseInt(b.id);
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return bNum - aNum;
+        }
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
     }
 
     return result;

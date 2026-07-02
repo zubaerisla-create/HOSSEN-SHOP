@@ -6,20 +6,35 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 
 function LoginContent() {
-  const { login } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/';
-
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('zubaerislam@gmail.com');
   const [password, setPassword] = useState<string>('123456');
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/';
+
+  const { login, signup } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(isSignUp ? (name || 'Zubaer Islam') : 'Zubaer Islam', email);
-    router.push(redirectPath);
+    setError('');
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        await signup(name || 'Zubaer Islam', email, password);
+      } else {
+        await login(email, password);
+      }
+      router.push(redirectPath);
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,7 +94,7 @@ function LoginContent() {
           </div>
 
           {/* Form Header */}
-          <div className="text-center flex flex-col gap-1.5">
+          <div className="text-center flex flex-col gap-1.5 w-full">
             <h2 className="font-serif text-2xl font-bold text-neutral-800 tracking-tight">
               {isSignUp ? 'Sign up for an account' : 'Sign in to your account'}
             </h2>
@@ -88,7 +103,7 @@ function LoginContent() {
                 <>
                   Already have an account?{' '}
                   <button 
-                    onClick={() => setIsSignUp(false)}
+                    onClick={() => { setIsSignUp(false); setError(''); }}
                     className="text-brand-orange hover:text-brand-orange-hover font-semibold transition-colors cursor-pointer"
                   >
                     Sign in
@@ -98,7 +113,7 @@ function LoginContent() {
                 <>
                   Don't have an account?{' '}
                   <button 
-                    onClick={() => setIsSignUp(true)}
+                    onClick={() => { setIsSignUp(true); setError(''); }}
                     className="text-brand-orange hover:text-brand-orange-hover font-semibold transition-colors cursor-pointer"
                   >
                     Create one
@@ -106,6 +121,11 @@ function LoginContent() {
                 </>
               )}
             </p>
+            {error && (
+              <div className="mt-3 p-3 rounded-lg bg-red-50 text-red-600 text-xs font-semibold text-center border border-red-100">
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Auth Input Fields Form */}
@@ -181,9 +201,10 @@ function LoginContent() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="mt-2 w-full bg-[#0F2C1F] hover:bg-[#091a12] text-white py-3 px-6 rounded-xl font-bold tracking-wide shadow-md active:scale-95 transition-all cursor-pointer text-center"
+              disabled={loading}
+              className="mt-2 w-full bg-[#0F2C1F] hover:bg-[#091a12] text-white py-3 px-6 rounded-xl font-bold tracking-wide shadow-md active:scale-95 transition-all cursor-pointer text-center disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
             >
-              {isSignUp ? 'Sign Up' : 'Sign In'}
+              {loading ? (isSignUp ? 'Signing Up...' : 'Signing In...') : (isSignUp ? 'Sign Up' : 'Sign In')}
             </button>
 
           </form>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../AdminContext';
 import { Image as ImageIcon, Link as LinkIcon, Upload, Trash2, X, AlertTriangle } from 'lucide-react';
+import { api } from '../../lib/api';
 
 interface Category {
   id: string;
@@ -18,6 +19,7 @@ export default function AdminCategoriesPage() {
   // Image selection modes
   const [imageMode, setImageMode] = useState<'upload' | 'url' | 'presets'>('upload');
   const [newCatImage, setNewCatImage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   
   // Delete confirmation state
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
@@ -34,14 +36,18 @@ export default function AdminCategoriesPage() {
     'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=120&auto=format&fit=crop&q=80', // frozen
   ];
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewCatImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsUploading(true);
+      try {
+        const res = await api.uploadImage(file);
+        setNewCatImage(res.url);
+      } catch (err: any) {
+        alert(err.message || 'Image upload failed.');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -207,11 +213,14 @@ export default function AdminCategoriesPage() {
                     <input
                       type="file"
                       accept="image/*"
+                      disabled={isUploading}
                       onChange={handleFileUpload}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <Upload className="w-8 h-8 text-neutral-300 mb-2" />
-                    <span className="text-xs font-bold text-neutral-600">Click to upload file</span>
+                    <span className="text-xs font-bold text-neutral-600">
+                      {isUploading ? 'Uploading image...' : 'Click to upload file'}
+                    </span>
                     <span className="text-[10px] text-neutral-400 mt-1">PNG, JPG or SVG</span>
                   </div>
                 )}
@@ -220,6 +229,7 @@ export default function AdminCategoriesPage() {
                   <input
                     type="url"
                     value={newCatImage}
+                    disabled={isUploading}
                     onChange={(e) => setNewCatImage(e.target.value)}
                     placeholder="Enter absolute image URL (e.g. https://...)"
                     className="w-full px-4 py-3 rounded-2xl border border-neutral-100 focus:outline-none focus:border-[#0F2C1F] text-sm text-neutral-800 font-medium bg-neutral-50/30"
@@ -263,15 +273,17 @@ export default function AdminCategoriesPage() {
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="w-1/2 py-3 bg-neutral-50 hover:bg-neutral-100 text-neutral-500 rounded-2xl font-bold text-xs transition-colors cursor-pointer text-center"
+                disabled={isUploading}
+                className="w-1/2 py-3 bg-neutral-50 hover:bg-neutral-100 text-neutral-500 rounded-2xl font-bold text-xs transition-colors cursor-pointer text-center disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="w-1/2 py-3 bg-[#0F2C1F] hover:bg-[#1c4734] text-white rounded-2xl font-bold text-xs transition-colors cursor-pointer text-center shadow-sm"
+                disabled={isUploading}
+                className="w-1/2 py-3 bg-[#0F2C1F] hover:bg-[#1c4734] text-white rounded-2xl font-bold text-xs transition-colors cursor-pointer text-center shadow-sm disabled:opacity-50"
               >
-                Create
+                {isUploading ? 'Uploading...' : 'Create'}
               </button>
             </div>
 

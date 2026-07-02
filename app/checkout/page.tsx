@@ -7,6 +7,12 @@ import { useAuth } from '../lib/AuthContext';
 import { useCart } from '../lib/CartContext';
 import Header from '../components/layout/Header';
 import Footer from '../components/home/Footer';
+import { api } from '../lib/api';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+// Load Stripe Publishable Key
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 interface Address {
   id: string;
@@ -18,10 +24,12 @@ interface Address {
   isDefault: boolean;
 }
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const router = useRouter();
   const { isLoggedIn, user, addresses } = useAuth();
   const { cartItems, cartTotal, clearCart } = useCart();
+  const stripe = useStripe();
+  const elements = useElements();
 
   // Auth protection guard
   useEffect(() => {
@@ -50,57 +58,86 @@ export default function CheckoutPage() {
   const tax = cartTotal * 0.08;
   const orderTotal = cartTotal + tax;
 
-  const handlePlaceOrder = () => {
-    const selectedAddress = addresses.find(addr => addr.id === selectedAddressId) || addresses.find(addr => addr.isDefault) || addresses[0];
-    
-    // Generate a unique order ID matching format like #E03449D2
-    const randomId = "E" + Math.floor(100000 + Math.random() * 900000).toString(16).toUpperCase();
-    
-    const orderData = {
-      orderId: randomId,
-      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-      items: cartItems.map(item => ({
-        id: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        image: item.product.image
-      })),
-      address: selectedAddress ? {
-        label: selectedAddress.label,
-        street: selectedAddress.street,
-        city: selectedAddress.city,
-        state: selectedAddress.state,
-        zip: selectedAddress.zip
-      } : {
-        label: "dfsrd",
-        street: "rtgsfd",
-        city: "gfs",
-        state: "gfs",
-        zip: "453"
-      },
-      subtotal: cartTotal,
-      tax: tax,
-      total: orderTotal
-    };
+  const [isPlacing, setIsPlacing] = useState(false);
 
-    // Load existing orders, append, and save
-    const existingOrdersStr = localStorage.getItem('hossen_shop_placed_orders');
-    let existingOrders = [];
-    if (existingOrdersStr) {
-      try {
-        existingOrders = JSON.parse(existingOrdersStr);
-      } catch (e) {
-        console.error("Error reading placed orders:", e);
+  const handlePlaceOrder = async () => {
+    if (isPlacing) return;
+    setIsPlacing(true);
+    
+    let resolvedCartItems = [...cartItems];
+    try {
+      const dbProducts = await api.getProducts();
+      if (dbProducts && dbProducts.length > 0) {
+        resolvedCartItems = cartItems.map(item => {
+          const id = String(item.product.id);
+          const isUuid = id.includes('-') && id.length > 20;
+          if (!isUuid) {
+            const matchingDbProduct = dbProducts.find((p: any) => p.name.toLowerCase() === item.product.name.toLowerCase());
+            if (matchingDbProduct) {
+              return {
+                ...item,
+                product: {
+                  ...item.product,
+                  id: matchingDbProduct.id
+                }
+              };
+            }
+          }
+          return item;
+        });
       }
+    } catch (e) {
+      console.warn("Failed to resolve product IDs from database:", e);
     }
-    existingOrders.unshift(orderData);
-    localStorage.setItem('hossen_shop_placed_orders', JSON.stringify(existingOrders));
 
-    // Clear cart and redirect to order tracking page
-    clearCart();
-    router.push(`/orders/${randomId}`);
+    const items = resolvedCartItems.map(item => ({
+      productId: item.product.id,
+      quantity: item.quantity
+    }));
+
+    try {
+      if (paymentMethod === 'card') {
+        if (!stripe || !elements) {
+          throw new Error('Stripe has not initialized yet. Please try again.');
+        }
+
+        const cardElement = elements.getElement(CardElement);
+        if (!cardElement) {
+          throw new Error('Card details form is missing.');
+        }
+
+        // 1. Get PaymentIntent clientSecret from server
+        const { clientSecret } = await api.createPaymentIntent(items);
+
+        // 2. Confirm card payment with Stripe
+        const paymentResult = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: user?.name || 'Anonymous Customer',
+              email: user?.email,
+            },
+          },
+        });
+
+        if (paymentResult.error) {
+          throw new Error(paymentResult.error.message || 'Payment failed. Please check your card info.');
+        }
+
+        if (paymentResult.paymentIntent?.status !== 'succeeded') {
+          throw new Error('Payment was not completed successfully.');
+        }
+      }
+
+      // 3. Create the order database record
+      const createdOrder = await api.createOrder(items, paymentMethod);
+      clearCart();
+      router.push(`/orders/${createdOrder.id}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to place order. Please try again.');
+    } finally {
+      setIsPlacing(false);
+    }
   };
 
   const selectedAddress = addresses.find(addr => addr.id === selectedAddressId) || addresses.find(addr => addr.isDefault);
@@ -123,7 +160,7 @@ export default function CheckoutPage() {
             <div className="flex flex-col gap-2">
               <h1 className="font-serif text-3xl font-bold text-neutral-800">Order Placed!</h1>
               <p className="text-sm text-neutral-400 leading-relaxed">
-                Thank you for shopping with Hossen Shop. Your organic groceries are on their way! Redirecting to home...
+                Thank you for shopping with Hossen Shop. Your apparel products are on their way! Redirecting to home...
               </p>
             </div>
           </div>
@@ -317,23 +354,25 @@ export default function CheckoutPage() {
                 {/* Credit/Debit Card Option */}
                 <div 
                   onClick={() => setPaymentMethod('card')}
-                  className={`p-4 rounded-xl border flex items-center justify-between gap-4 cursor-pointer transition-all ${
+                  className={`p-4 rounded-xl border flex flex-col gap-4 cursor-pointer transition-all ${
                     paymentMethod === 'card'
                       ? 'border-[#0F2C1F] bg-neutral-50/40 shadow-sm'
                       : 'border-neutral-200/70 hover:border-neutral-300'
                   }`}
                 >
-                  <div className="flex flex-col gap-1 text-left font-sans">
-                    <span className="font-bold text-sm text-neutral-800">Credit / Debit Card</span>
-                    <span className="text-xs text-neutral-400 font-medium">Pay securely with your card</span>
-                  </div>
-                  <div className="relative flex items-center justify-center">
-                    <input 
-                      type="radio" 
-                      checked={paymentMethod === 'card'} 
-                      onChange={() => setPaymentMethod('card')}
-                      className="w-4 h-4 text-brand-green border-neutral-300 focus:ring-brand-green accent-[#0F2C1F]"
-                    />
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-1 text-left font-sans">
+                      <span className="font-bold text-sm text-neutral-800">Credit / Debit Card</span>
+                      <span className="text-xs text-neutral-400 font-medium">Pay securely with your card</span>
+                    </div>
+                    <div className="relative flex items-center justify-center">
+                      <input 
+                        type="radio" 
+                        checked={paymentMethod === 'card'} 
+                        onChange={() => setPaymentMethod('card')}
+                        className="w-4 h-4 text-brand-green border-neutral-300 focus:ring-brand-green accent-[#0F2C1F]"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -402,6 +441,44 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {/* Selected Payment Method review sub-card */}
+              <div className="bg-neutral-50/50 border border-neutral-100 rounded-2xl p-5 text-left font-sans flex flex-col gap-2">
+                <span className="font-bold text-xs text-neutral-400 tracking-wider uppercase flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75-3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                  </svg>
+                  Payment Method
+                </span>
+                <span className="font-bold text-neutral-800 text-sm">
+                  {paymentMethod === 'card' ? 'Credit / Debit Card (Stripe)' : 'Cash on Delivery (COD)'}
+                </span>
+
+                {paymentMethod === 'card' && (
+                  <div className="mt-3 p-4 bg-white border border-neutral-200/60 rounded-xl shadow-inner text-left">
+                    <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-2">Card Details</label>
+                    <div className="p-3 border border-neutral-200 rounded-lg">
+                      <CardElement 
+                        options={{
+                          style: {
+                            base: {
+                              fontSize: '14px',
+                              color: '#1f2937',
+                              fontFamily: 'Inter, sans-serif',
+                              '::placeholder': {
+                                color: '#9ca3af',
+                              },
+                            },
+                            invalid: {
+                              color: '#ef4444',
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Cart line items listings */}
               <div className="flex flex-col gap-3">
                 {cartItems.map((item) => (
@@ -432,9 +509,10 @@ export default function CheckoutPage() {
               {/* Dynamic CTA Place Order Button */}
               <button
                 onClick={handlePlaceOrder}
-                className="w-full bg-brand-orange hover:bg-brand-orange-hover text-white py-3.5 px-6 rounded-xl font-bold tracking-wide shadow-md active:scale-95 transition-all cursor-pointer text-center"
+                disabled={isPlacing}
+                className="w-full bg-brand-orange hover:bg-brand-orange-hover text-white py-3.5 px-6 rounded-xl font-bold tracking-wide shadow-md active:scale-95 transition-all cursor-pointer text-center disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
               >
-                Place Order — ${orderTotal.toFixed(2)}
+                {isPlacing ? 'Placing Order...' : `Place Order — $${orderTotal.toFixed(2)}`}
               </button>
 
             </div>
@@ -478,5 +556,13 @@ export default function CheckoutPage() {
     </main>
     <Footer />
   </div>
-);
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutPageContent />
+    </Elements>
+  );
 }

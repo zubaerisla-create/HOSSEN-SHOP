@@ -5,13 +5,14 @@ import { useRouter, useParams } from 'next/navigation';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/home/Footer';
 import { useAuth } from '../../lib/AuthContext';
+import { api } from '../../lib/api';
 
 interface PlacedOrder {
   orderId: string;
   date: string;
   time: string;
   items: Array<{
-    id: number;
+    id: string | number;
     name: string;
     price: number;
     quantity: number;
@@ -73,40 +74,108 @@ export default function OrderDetailsPage() {
   }, [order]);
 
   useEffect(() => {
-    // Dynamic order dates to match current local time or mockup date
-    const now = new Date();
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
-    
-    let hours = now.getHours();
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // 0 should be 12
-    const formattedTime = `${hours}:${minutes} ${ampm}`;
-
-    setOrderDateStr(formattedDate);
-    setOrderTimeStr(formattedTime);
-
-    // Load matching order from localStorage
-    const savedOrdersStr = localStorage.getItem('hossen_shop_placed_orders');
-    if (savedOrdersStr) {
+    const fetchOrderData = async () => {
+      setLoading(true);
       try {
-        const savedOrders: PlacedOrder[] = JSON.parse(savedOrdersStr);
-        const matched = savedOrders.find(o => o.orderId === id);
-        if (matched) {
-          setOrder(matched);
+        const orderIdStr = Array.isArray(id) ? id[0] : id;
+        if (!orderIdStr) {
+          setOrder(null);
           setLoading(false);
           return;
         }
-      } catch (e) {
-        console.error("Error reading placed orders:", e);
-      }
-    }
 
-    // No matching order found — set to a sentinel so we show "not found" UI
-    setOrder(null);
-    setLoading(false);
+        const data = await api.getOrderById(orderIdStr);
+        if (data) {
+          const orderDate = new Date(data.createdAt);
+          const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+          const formattedDate = `${months[orderDate.getMonth()]} ${orderDate.getDate()}, ${orderDate.getFullYear()}`;
+          
+          let hours = orderDate.getHours();
+          const minutes = orderDate.getMinutes().toString().padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12;
+          hours = hours ? hours : 12;
+          const formattedTime = `${hours}:${minutes} ${ampm}`;
+
+          setOrderDateStr(formattedDate);
+          setOrderTimeStr(formattedTime);
+
+          // Get address from localStorage fallback
+          let orderAddr = {
+            label: "Home",
+            street: "123 Main St",
+            city: "Dhaka",
+            state: "Dhaka",
+            zip: "1212"
+          };
+          
+          const savedAddressesStr = localStorage.getItem('hossen_shop_addresses');
+          if (savedAddressesStr) {
+            try {
+              const list = JSON.parse(savedAddressesStr);
+              const found = list.find((a: any) => a.isDefault) || list[0];
+              if (found) {
+                orderAddr = {
+                  label: found.label,
+                  street: found.street,
+                  city: found.city,
+                  state: found.state,
+                  zip: found.zip
+                };
+              }
+            } catch {}
+          }
+
+          const mappedItems = (data.items || []).map((it: any) => ({
+            id: it.id,
+            name: it.product?.name || 'Unknown Item',
+            price: it.price || 0.0,
+            quantity: it.quantity || 1,
+            image: it.product?.image || '/images/default_product.png'
+          }));
+
+          const subtotal = mappedItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
+          const tax = subtotal * 0.08;
+
+          setOrder({
+            orderId: data.id,
+            date: formattedDate,
+            time: formattedTime,
+            items: mappedItems,
+            address: orderAddr,
+            subtotal,
+            tax,
+            total: data.totalAmount || (subtotal + tax),
+            status: data.status,
+            deliveryPartner: data.deliveryPartner || undefined
+          });
+        } else {
+          setOrder(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch order from API:', err);
+        // Fallback to localStorage
+        const savedOrdersStr = localStorage.getItem('hossen_shop_placed_orders');
+        if (savedOrdersStr) {
+          try {
+            const savedOrders: PlacedOrder[] = JSON.parse(savedOrdersStr);
+            const matched = savedOrders.find(o => o.orderId === id);
+            if (matched) {
+              setOrder(matched);
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.error("Error reading placed orders:", e);
+          }
+        }
+        setOrder(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrderData();
   }, [id]);
 
   const isStepCompleted = (stepName: string) => {

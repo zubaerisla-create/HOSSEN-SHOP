@@ -2,31 +2,31 @@
 
 import React, { useState, useEffect } from 'react';
 import { Mail, RotateCcw, CheckCircle } from 'lucide-react';
-import { DEFAULT_NEWSLETTER, NewsletterContent } from '../../lib/SiteContentContext';
+import { useSiteContent, DEFAULT_NEWSLETTER, NewsletterContent } from '../../lib/SiteContentContext';
 
 export default function AdminNewsletterPage() {
+  const { newsletter, updateNewsletter } = useSiteContent();
   const [form, setForm] = useState<NewsletterContent>(DEFAULT_NEWSLETTER);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hossen_cms_newsletter');
-      if (raw) setForm({ ...DEFAULT_NEWSLETTER, ...JSON.parse(raw) });
-    } catch { /* ignore */ }
-  }, []);
+    if (newsletter) {
+      setForm(newsletter);
+    }
+  }, [newsletter]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
   const set = (key: keyof NewsletterContent, val: string) => setForm(f => ({ ...f, [key]: val }));
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('hossen_cms_newsletter', JSON.stringify(form));
+    updateNewsletter(form);
     showToast('Newsletter section saved!');
   };
 
   const handleReset = () => {
     setForm(DEFAULT_NEWSLETTER);
-    localStorage.setItem('hossen_cms_newsletter', JSON.stringify(DEFAULT_NEWSLETTER));
+    updateNewsletter(DEFAULT_NEWSLETTER);
     showToast('Restored defaults!');
   };
 

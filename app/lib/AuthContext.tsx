@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from './api';
 
 export interface Address {
   id: string;
@@ -13,15 +14,18 @@ export interface Address {
 }
 
 interface User {
-  name: string;
+  id: string;
+  name: string | null;
   email: string;
+  role: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
   addresses: Address[];
-  login: (name: string, email: string) => void;
+  login: (email: string, pass: string) => Promise<void>;
+  signup: (name: string, email: string, pass: string) => Promise<void>;
   logout: () => void;
   addAddress: (address: Omit<Address, 'id'>) => void;
   deleteAddress: (id: string) => void;
@@ -31,7 +35,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Initial mockup address matching user's screenshots
 const INITIAL_MOCK_ADDRESSES: Address[] = [
   {
     id: "mock-1",
@@ -77,15 +80,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsHydrated(true);
   }, []);
 
-  const login = (name: string, email: string) => {
-    const newUser = { name, email };
-    setUser(newUser);
-    localStorage.setItem('hossen_shop_user', JSON.stringify(newUser));
+  const login = async (email: string, pass: string) => {
+    const res = await api.login({ email, password: pass });
+    setUser(res.user);
+  };
+
+  const signup = async (name: string, email: string, pass: string) => {
+    const res = await api.signup({ name, email, password: pass });
+    setUser(res.user);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('hossen_shop_user');
+    api.logout();
   };
 
   const saveAddressesToStorage = (updated: Address[]) => {
@@ -109,7 +116,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteAddress = (id: string) => {
     const updated = addresses.filter(a => a.id !== id);
-    // If we deleted the default, set first remaining as default
     if (addresses.find(a => a.id === id)?.isDefault && updated.length > 0) {
       updated[0].isDefault = true;
     }
@@ -145,6 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoggedIn: !!user, 
         addresses, 
         login, 
+        signup,
         logout,
         addAddress,
         deleteAddress,

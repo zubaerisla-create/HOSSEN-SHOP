@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Button from '../ui/Button';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
+import { useSiteContent } from '../../lib/SiteContentContext';
 import { 
   Zap, 
   Truck, 
@@ -26,9 +27,12 @@ export const Header: React.FC = () => {
   const router = useRouter();
   const { cartCount, setIsCartOpen } = useCart();
   const { user, isLoggedIn, logout } = useAuth();
+  const { flashLine, siteSettings } = useSiteContent();
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+
+  const { promoText, freeDeliveryText, discountCodeText, linkText, linkUrl } = flashLine;
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
@@ -37,11 +41,6 @@ export const Header: React.FC = () => {
   };
 
   const [scrolled, setScrolled] = React.useState(false);
-  const [promoText, setPromoText] = React.useState('Flash Deals: Up to 40% OFF Select Fresh Organic Produce!');
-  const [freeDeliveryText, setFreeDeliveryText] = React.useState('Free delivery on orders over $20!');
-  const [discountCodeText, setDiscountCodeText] = React.useState('Special Discount Code: HOSSEN10');
-  const [linkText, setLinkText] = React.useState('Shop Now');
-  const [linkUrl, setLinkUrl] = React.useState('/deals');
   const lastScrollY = React.useRef(0);
 
   React.useEffect(() => {
@@ -68,42 +67,15 @@ export const Header: React.FC = () => {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Load flash line settings
-    const savedLine = localStorage.getItem('hossen_shop_flash_line_settings');
-    if (savedLine) {
-      try {
-        const parsed = JSON.parse(savedLine);
-        if (parsed.promoText) setPromoText(parsed.promoText);
-        if (parsed.freeDeliveryText) setFreeDeliveryText(parsed.freeDeliveryText);
-        if (parsed.discountCodeText) setDiscountCodeText(parsed.discountCodeText);
-        if (parsed.linkText) setLinkText(parsed.linkText);
-        if (parsed.linkUrl) setLinkUrl(parsed.linkUrl);
-      } catch (e) {
-        console.error(e);
-      }
-    } else {
-      // Fallback: Check if there's any saved promo title from flash promo settings
-      const savedPromo = localStorage.getItem('hossen_shop_flash_promo_settings');
-      if (savedPromo) {
-        try {
-          const parsed = JSON.parse(savedPromo);
-          if (parsed.title) {
-            setPromoText(parsed.title);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    }
-
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <div
-      className="sticky top-0 z-50 flex flex-col w-full transition-transform duration-300 ease-in-out will-change-transform"
-      style={{ transform: scrolled ? 'translateY(-40px)' : 'translateY(0)' }}
-    >
+    <>
+      <div
+        className="sticky top-0 z-50 flex flex-col w-full transition-transform duration-300 ease-in-out will-change-transform"
+        style={{ transform: scrolled ? 'translateY(-40px)' : 'translateY(0)' }}
+      >
 
       {/* Premium Flash Deals Announcement Bar */}
       <div
@@ -169,22 +141,26 @@ export const Header: React.FC = () => {
                     <path d="M14 16l3-8h5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <span className="font-serif text-lg sm:text-xl md:text-2xl font-bold text-brand-green tracking-tight whitespace-nowrap">
-                  Hossen Shop
+                 <span className="font-serif text-lg sm:text-xl md:text-2xl font-bold text-brand-green tracking-tight whitespace-nowrap">
+                  {siteSettings?.logoText || 'Hossen Shop'}
                 </span>
               </Link>
 
               {/* Navigation Links (Desktop only) */}
               <nav className="hidden md:flex items-center gap-6 lg:gap-8 font-sans">
-                <Link href="/" className="text-[#555] hover:text-brand-green font-medium text-sm transition-colors duration-150">
-                  Home
-                </Link>
-                <Link href="/products" className="text-[#555] hover:text-brand-green font-medium text-sm transition-colors duration-150">
-                  Products
-                </Link>
-                <Link href="/deals" className="text-brand-orange hover:text-brand-orange-hover font-semibold text-sm transition-colors duration-150">
-                  Deals
-                </Link>
+                {(siteSettings?.navLinks && siteSettings.navLinks.length > 0 ? siteSettings.navLinks : [
+                  { id: '1', label: 'Home', href: '/' },
+                  { id: '2', label: 'Products', href: '/products' },
+                  { id: '3', label: 'Deals', href: '/deals' }
+                ]).map((link) => (
+                  <Link 
+                    key={link.id} 
+                    href={link.href} 
+                    className={`${link.href === '/deals' ? 'text-brand-orange hover:text-brand-orange-hover font-semibold' : 'text-[#555] hover:text-brand-green font-medium'} text-sm transition-colors duration-150`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
               </nav>
             </div>
 
@@ -359,6 +335,7 @@ export const Header: React.FC = () => {
 
         </div>
       </header>
+      </div>
 
       {/* Mobile Drawer Overlay & Drawer */}
       {isMobileMenuOpen && (
@@ -366,10 +343,10 @@ export const Header: React.FC = () => {
           {/* Backdrop */}
           <div
             onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/45 backdrop-blur-[1.5px] z-50 transition-opacity duration-300 animate-in fade-in"
+            className="fixed inset-0 bg-black/45 backdrop-blur-[1.5px] z-[9999] transition-opacity duration-300 animate-in fade-in"
           />
           {/* Drawer Panel */}
-          <div className="fixed top-0 right-0 h-full w-72 bg-[#FAF8F5] shadow-2xl z-50 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
+          <div className="fixed top-0 right-0 h-screen w-72 bg-[#FAF8F5] shadow-2xl z-[10000] p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
             
             {/* Drawer Header */}
             <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
@@ -489,7 +466,7 @@ export const Header: React.FC = () => {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 };
 

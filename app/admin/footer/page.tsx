@@ -2,33 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Trash2, RotateCcw, CheckCircle } from 'lucide-react';
-import { DEFAULT_FOOTER, FooterContent, FooterLink } from '../../lib/SiteContentContext';
+import { useSiteContent, DEFAULT_FOOTER, FooterContent, FooterLink } from '../../lib/SiteContentContext';
 
 const makeId = () => Math.random().toString(36).slice(2, 9);
 
 export default function AdminFooterPage() {
+  const { footer, updateFooter } = useSiteContent();
   const [form, setForm] = useState<FooterContent>(DEFAULT_FOOTER);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hossen_cms_footer');
-      if (raw) setForm(JSON.parse(raw));
-    } catch { /* ignore */ }
-  }, []);
+    if (footer) {
+      setForm(footer);
+    }
+  }, [footer]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
   const set = (key: keyof FooterContent, val: string) => setForm(f => ({ ...f, [key]: val }));
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('hossen_cms_footer', JSON.stringify(form));
+    updateFooter(form);
     showToast('Footer saved!');
   };
 
   const handleReset = () => {
     setForm(DEFAULT_FOOTER);
-    localStorage.setItem('hossen_cms_footer', JSON.stringify(DEFAULT_FOOTER));
+    updateFooter(DEFAULT_FOOTER);
     showToast('Restored defaults!');
   };
 

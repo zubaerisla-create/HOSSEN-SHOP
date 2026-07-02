@@ -6,8 +6,10 @@ import Header from '../components/layout/Header';
 import Footer from '../components/home/Footer';
 import { useAuth } from '../lib/AuthContext';
 
+import { api } from '../lib/api';
+
 interface OrderItem {
-  id: number;
+  id: string | number;
   name: string;
   price: number;
   quantity: number;
@@ -29,7 +31,7 @@ interface PlacedOrder {
   subtotal: number;
   tax: number;
   total: number;
-  status?: string; // Placed, Confirmed, Out for Delivery, Delivered
+  status?: string;
 }
 
 export default function MyOrdersPage() {
@@ -37,22 +39,93 @@ export default function MyOrdersPage() {
   const { isLoggedIn } = useAuth();
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
   const [activeTab, setActiveTab] = useState<'All' | 'Placed' | 'Out for Delivery' | 'Delivered'>('All');
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Load orders from localStorage
-    const savedOrdersStr = localStorage.getItem('hossen_shop_placed_orders');
-    if (savedOrdersStr) {
+    const fetchUserOrders = async () => {
       try {
-        const loadedOrders: PlacedOrder[] = JSON.parse(savedOrdersStr);
-        setOrders(loadedOrders);
-      } catch (e) {
-        console.error("Error parsing orders:", e);
+        const data = await api.getMyOrders();
+        if (data && data.length > 0) {
+          const mapped: PlacedOrder[] = data.map((order: any) => {
+            const orderDate = new Date(order.createdAt);
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const dateStr = `${months[orderDate.getMonth()]} ${orderDate.getDate()}, ${orderDate.getFullYear()}`;
+            
+            let hours = orderDate.getHours();
+            const minutes = orderDate.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            const timeStr = `${hours}:${minutes} ${ampm}`;
+
+            const items: OrderItem[] = (order.items || []).map((it: any) => ({
+              id: it.id,
+              name: it.product?.name || 'Unknown Product',
+              price: it.price || 0,
+              quantity: it.quantity || 1,
+              image: it.product?.image || '/images/default_product.png'
+            }));
+
+            const subtotal = items.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+            const tax = subtotal * 0.08;
+
+            return {
+              orderId: order.id,
+              date: dateStr,
+              time: timeStr,
+              items,
+              address: {
+                label: 'Home',
+                street: '123 Main St',
+                city: 'Dhaka',
+                state: 'Dhaka',
+                zip: '1212'
+              },
+              subtotal,
+              tax,
+              total: order.totalAmount || (subtotal + tax),
+              status: order.status
+            };
+          });
+          setOrders(mapped);
+        } else {
+          // Fallback to local
+          const savedOrdersStr = localStorage.getItem('hossen_shop_placed_orders');
+          if (savedOrdersStr) {
+            setOrders(JSON.parse(savedOrdersStr));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch user orders:', err);
+        const savedOrdersStr = localStorage.getItem('hossen_shop_placed_orders');
+        if (savedOrdersStr) {
+          try {
+            setOrders(JSON.parse(savedOrdersStr));
+          } catch {}
+        }
+      } finally {
+        setLoading(false);
       }
+    };
+    if (isLoggedIn) {
+      fetchUserOrders();
     }
-  }, []);
+  }, [isLoggedIn]);
 
   if (!isLoggedIn) {
     return <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center font-sans text-neutral-500">Checking authentication...</div>;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
+        <Header />
+        <main className="flex-grow flex items-center justify-center py-20">
+          <div className="text-brand-green font-medium font-serif text-lg animate-pulse">Loading Orders...</div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   // Filter orders based on active tab

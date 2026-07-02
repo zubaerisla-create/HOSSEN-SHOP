@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAdmin } from '../AdminContext';
+import { api } from '../../lib/api';
 import { Mail, Send, Users, History, FileText, CheckCircle, Trash2, Eye, Sparkles } from 'lucide-react';
 
 interface SentEmail {
@@ -160,37 +161,63 @@ export default function AdminSendEmailPage() {
       'Resolving recipient list...',
       `Validating ${resolvedRecipients.length} email addresses...`,
       'Compiling content template variables...',
-      'Connecting to SMTP server (smtp.hossenshop.com)...',
+      'Connecting to Gmail SMTP server...',
       'Sending mail chunks...',
-      'Email dispatched successfully!'
     ];
 
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setSendingProgress(Math.min(Math.round(((i + 1) / steps.length) * 100), 100));
-      setSendingLogs(prev => [...prev, steps[i]]);
+    try {
+      // Step 1: Resolving/Validating
+      setSendingProgress(20);
+      setSendingLogs(prev => [...prev, steps[0], steps[1]]);
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Step 2: Compiling variables
+      setSendingProgress(40);
+      setSendingLogs(prev => [...prev, steps[2]]);
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Step 3: SMTP connection & sending
+      setSendingProgress(60);
+      setSendingLogs(prev => [...prev, steps[3], steps[4]]);
+      
+      // Call real backend API to send the email!
+      await api.sendDashboardEmail({
+        recipients: resolvedRecipients,
+        subject,
+        body
+      });
+
+      // Done!
+      setSendingProgress(100);
+      setSendingLogs(prev => [...prev, 'Email dispatched successfully via Gmail SMTP!']);
+      await new Promise(resolve => setTimeout(resolve, 450));
+
+      // Save to local storage history
+      const newSent: SentEmail = {
+        id: Math.random().toString(36).slice(2, 9),
+        recipients: resolvedRecipients,
+        subject,
+        body,
+        template: selectedPreset,
+        sentAt: new Date().toLocaleString()
+      };
+
+      const updatedHistory = [newSent, ...sentHistory];
+      setSentHistory(updatedHistory);
+      localStorage.setItem('hossen_shop_sent_emails', JSON.stringify(updatedHistory));
+
+      showToast(`Email dispatched to ${resolvedRecipients.length} recipients! 🚀`);
+      
+      // Clear selections
+      setSelectedEmails([]);
+      setCustomEmails('');
+    } catch (err: any) {
+      console.error(err);
+      setSendingLogs(prev => [...prev, `❌ Error sending: ${err.message || 'SMTP Connection failure'}`]);
+      showToast('Failed to send email. Please check your SMTP settings.');
+    } finally {
+      setIsSending(false);
     }
-
-    // Save to local storage history
-    const newSent: SentEmail = {
-      id: Math.random().toString(36).slice(2, 9),
-      recipients: resolvedRecipients,
-      subject,
-      body,
-      template: selectedPreset,
-      sentAt: new Date().toLocaleString()
-    };
-
-    const updatedHistory = [newSent, ...sentHistory];
-    setSentHistory(updatedHistory);
-    localStorage.setItem('hossen_shop_sent_emails', JSON.stringify(updatedHistory));
-
-    setIsSending(false);
-    showToast(`Email dispatched to ${resolvedRecipients.length} recipients! 🚀`);
-    
-    // Clear selections
-    setSelectedEmails([]);
-    setCustomEmails('');
   };
 
   // Toggle dynamic recipient selection

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { api } from '../../lib/api';
 
 interface PromoSettings {
   title: string;
@@ -20,22 +21,24 @@ export default function AdminFlashPromoPage() {
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('hossen_shop_flash_promo_settings');
-    if (saved) {
+    const fetchPromo = async () => {
       try {
-        const parsed: PromoSettings = JSON.parse(saved);
-        setTitle(parsed.title || '');
-        setBadge(parsed.badge || '');
-        setDescription(parsed.description || '');
-        setImage(parsed.image || '');
-        setButtonText(parsed.buttonText || '');
-      } catch (e) {
-        console.error(e);
+        const data = await api.getCmsSetting<PromoSettings>('flashPromo');
+        if (data) {
+          setTitle(data.title || '');
+          setBadge(data.badge || '');
+          setDescription(data.description || '');
+          setImage(data.image || '');
+          setButtonText(data.buttonText || '');
+        }
+      } catch (err) {
+        console.error('Failed to load flash promo settings from CMS API:', err);
       }
-    }
+    };
+    fetchPromo();
   }, []);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const settings: PromoSettings = {
       title,
@@ -44,8 +47,13 @@ export default function AdminFlashPromoPage() {
       image,
       buttonText
     };
-    localStorage.setItem('hossen_shop_flash_promo_settings', JSON.stringify(settings));
-    showToast('Promo settings saved successfully!');
+    try {
+      await api.updateCmsSetting<PromoSettings>('flashPromo', settings);
+      showToast('Promo settings saved successfully!');
+    } catch (err) {
+      console.error('Failed to save flash promo settings to CMS API:', err);
+      showToast('Failed to save settings to backend.');
+    }
   };
 
   const handleResetTrigger = () => {

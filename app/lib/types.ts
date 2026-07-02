@@ -8,6 +8,9 @@ export interface Product {
   originalPrice?: number;
   discount?: number; // e.g., 7 for 7% OFF
   image: string;
+  isFlashDeal?: boolean;
+  flashLabel?: string;
+  flashDiscount?: number;
 }
 
 export interface Category {

@@ -1,8 +1,32 @@
-import React from 'react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
 import ProductCard from '../ui/ProductCard';
-import { products } from '../../lib/mockData';
+import { products as defaultProducts } from '../../lib/mockData';
+import { api } from '../../lib/api';
+import { Product } from '../../lib/types';
 
 export const PopularProducts: React.FC = () => {
+  const [productList, setProductList] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const fetchPopularProducts = async () => {
+      try {
+        const data = await api.getProducts();
+        if (data && data.length > 0) {
+          // Slice top 10 products
+          setProductList(data.slice(0, 10));
+        } else {
+          setProductList(defaultProducts.slice(0, 10));
+        }
+      } catch (err) {
+        console.error('Failed to fetch popular products:', err);
+        setProductList(defaultProducts.slice(0, 10));
+      }
+    };
+    fetchPopularProducts();
+  }, []);
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-8 md:py-12">
       
@@ -19,7 +43,7 @@ export const PopularProducts: React.FC = () => {
         
         {/* View All Link */}
         <a
-          href="#"
+          href="/products"
           className="flex items-center gap-1 text-sm font-semibold text-brand-orange hover:text-brand-orange-hover hover:underline transition-all duration-200"
         >
           View All
@@ -31,7 +55,7 @@ export const PopularProducts: React.FC = () => {
 
       {/* Responsive Products Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
-        {products.map((product) => (
+        {productList.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

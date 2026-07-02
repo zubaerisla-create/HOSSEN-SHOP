@@ -1,24 +1,44 @@
 "use client";
 
-import React, { useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../components/layout/Header';
 import Footer from '../components/home/Footer';
 import { ProductCard } from '../components/ui/ProductCard';
-import { products } from '../lib/mockData';
+import { products as defaultProducts } from '../lib/mockData';
+import { api } from '../lib/api';
+import { Product } from '../lib/types';
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
+  const [productList, setProductList] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const data = await api.getProducts();
+        if (data && data.length > 0) {
+          setProductList(data);
+        } else {
+          setProductList(defaultProducts);
+        }
+      } catch (err) {
+        console.error('Failed to load products for search:', err);
+        setProductList(defaultProducts);
+      }
+    };
+    loadProducts();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     if (!query) return [];
     const lowerQuery = query.toLowerCase();
-    return products.filter((p) => 
+    return productList.filter((p) => 
       p.name.toLowerCase().includes(lowerQuery)
     );
-  }, [query]);
+  }, [query, productList]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FAF8F5]">

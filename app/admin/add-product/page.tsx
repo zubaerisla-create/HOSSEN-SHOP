@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../AdminContext';
+import { api } from '../../lib/api';
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function AddProductPage() {
   const [prodImage, setProdImage] = useState('');
   const [prodDesc, setProdDesc] = useState('');
   const [prodOrganic, setProdOrganic] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Set default category name when categories list loads
   useEffect(() => {
@@ -161,7 +163,9 @@ export default function AddProductPage() {
 
         {/* Product Image URL Input */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-neutral-600">Product Image URL</label>
+          <label className="text-xs font-bold text-neutral-600">
+            {isUploading ? 'Uploading Product Image...' : 'Product Image URL'}
+          </label>
           <div className="flex items-center gap-3">
             <input
               type="text"
@@ -169,21 +173,30 @@ export default function AddProductPage() {
               value={prodImage}
               onChange={(e) => setProdImage(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-brand-green/45 transition-all"
+              disabled={isUploading}
             />
-            <div className="flex items-center gap-2 border border-[#FF5C00] rounded-xl px-4 py-2.5 shrink-0 bg-white">
+            <div className="flex items-center gap-2 border border-[#FF5C00] rounded-xl px-4 py-2.5 shrink-0 bg-white opacity-90 hover:opacity-100 transition-all">
               <input
                 type="file"
                 id="image-file"
                 className="hidden"
-                onChange={(e) => {
+                disabled={isUploading}
+                onChange={async (e) => {
                   if (e.target.files?.[0]) {
-                    const url = URL.createObjectURL(e.target.files[0]);
-                    setProdImage(url);
+                    setIsUploading(true);
+                    try {
+                      const res = await api.uploadImage(e.target.files[0]);
+                      setProdImage(res.url);
+                    } catch (err: any) {
+                      alert(err.message || 'Image upload failed. Please make sure the backend is running.');
+                    } finally {
+                      setIsUploading(false);
+                    }
                   }
                 }}
               />
-              <label htmlFor="image-file" className="cursor-pointer font-bold text-xs text-[#FF5C00] uppercase select-none">
-                Choose File
+              <label htmlFor="image-file" className={`cursor-pointer font-bold text-xs text-[#FF5C00] uppercase select-none ${isUploading ? 'pointer-events-none opacity-50' : ''}`}>
+                {isUploading ? 'Uploading...' : 'Choose File'}
               </label>
             </div>
           </div>

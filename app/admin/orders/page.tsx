@@ -48,6 +48,18 @@ export default function AdminOrdersPage() {
             </tr>
           </thead>
           <tbody>
+            {ordersList.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-16 text-center text-neutral-400 font-medium text-sm">
+                  <div className="flex flex-col items-center gap-3">
+                    <svg className="w-10 h-10 text-neutral-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                    </svg>
+                    <span>No orders yet. Once customers place orders, they'll appear here.</span>
+                  </div>
+                </td>
+              </tr>
+            )}
             {ordersList.map((order) => {
               // Status Badge Styles
               let statusClasses = '';
@@ -59,6 +71,8 @@ export default function AdminOrdersPage() {
                 statusClasses = 'bg-[#FFF7ED] text-[#EA580C] border-[#FFEDD5]';
               } else if (order.status === 'Out for Delivery') {
                 statusClasses = 'bg-[#FAF5FF] text-[#9333EA] border-[#F3E8FF]';
+              } else if (order.status === 'Cancelled') {
+                statusClasses = 'bg-[#FFF1F2] text-[#E11D48] border-[#FFE4E6]';
               } else {
                 // Delivered
                 statusClasses = 'bg-[#F0FDF4] text-[#16A34A] border-[#DCFCE7]';
@@ -69,8 +83,9 @@ export default function AdminOrdersPage() {
                   
                   {/* ORDER DETAILS */}
                   <td className="py-5 pr-4 flex flex-col gap-0.5 justify-center">
-                    <span className="font-bold text-neutral-900 text-sm">#{order.orderId.toLowerCase()}</span>
+                    <span className="font-bold text-neutral-900 text-sm">#{order.orderId.slice(0, 8).toUpperCase()}</span>
                     <span className="text-[11px] text-neutral-400 font-semibold">{order.date}, {order.time}</span>
+                    <span className="text-[11px] text-neutral-500 font-semibold">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
                   </td>
 
                   {/* CUSTOMER */}
@@ -116,6 +131,7 @@ export default function AdminOrdersPage() {
                         <option value="Assigned">Assigned</option>
                         <option value="Out for Delivery">Out for Delivery</option>
                         <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
                       </select>
                       {/* Chevron Down Arrow Icon inside select badge */}
                       <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-current">

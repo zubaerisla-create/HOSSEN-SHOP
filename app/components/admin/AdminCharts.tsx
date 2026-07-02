@@ -15,7 +15,7 @@ interface CategoryData {
   color: string;
 }
 
-const monthlySalesData: MonthlyData[] = [
+const defaultMonthlySalesData: MonthlyData[] = [
   { month: 'Jan', sales: 12400, orders: 120 },
   { month: 'Feb', sales: 15800, orders: 150 },
   { month: 'Mar', sales: 14200, orders: 135 },
@@ -24,7 +24,7 @@ const monthlySalesData: MonthlyData[] = [
   { month: 'Jun', sales: 28900, orders: 275 },
 ];
 
-const categoryData: CategoryData[] = [
+const defaultCategoryData: CategoryData[] = [
   { category: 'Fruits & Veg', value: 14200, color: '#0F2C1F' },
   { category: 'Dairy & Eggs', value: 9800, color: '#10B981' },
   { category: 'Pantry Staples', value: 7500, color: '#FF8A00' },
@@ -32,7 +32,23 @@ const categoryData: CategoryData[] = [
   { category: 'Bakery', value: 4300, color: '#EC4899' },
 ];
 
-export default function AdminCharts() {
+interface AdminChartsProps {
+  monthlySalesData?: MonthlyData[];
+  categorySalesData?: CategoryData[];
+}
+
+export default function AdminCharts({
+  monthlySalesData: propMonthlySalesData,
+  categorySalesData: propCategorySalesData,
+}: AdminChartsProps) {
+  const monthlySalesData = propMonthlySalesData && propMonthlySalesData.length > 0
+    ? propMonthlySalesData
+    : defaultMonthlySalesData;
+
+  const categoryData = propCategorySalesData && propCategorySalesData.length > 0
+    ? propCategorySalesData
+    : defaultCategoryData;
+
   const [activeSalesIdx, setActiveSalesIdx] = useState<number | null>(null);
   const [activeCategoryIdx, setActiveCategoryIdx] = useState<number | null>(null);
 

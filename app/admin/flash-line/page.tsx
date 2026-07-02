@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Zap, Truck, Tag } from 'lucide-react';
+import { api } from '../../lib/api';
 
 interface FlashLineSettings {
   promoText: string;
@@ -30,22 +31,24 @@ export default function AdminFlashLinePage() {
 
   // Load saved settings on mount
   useEffect(() => {
-    const saved = localStorage.getItem('hossen_shop_flash_line_settings');
-    if (saved) {
+    const fetchFlashLine = async () => {
       try {
-        const parsed: FlashLineSettings = JSON.parse(saved);
-        setPromoText(parsed.promoText || DEFAULT_SETTINGS.promoText);
-        setFreeDeliveryText(parsed.freeDeliveryText || DEFAULT_SETTINGS.freeDeliveryText);
-        setDiscountCodeText(parsed.discountCodeText || DEFAULT_SETTINGS.discountCodeText);
-        setLinkText(parsed.linkText || DEFAULT_SETTINGS.linkText);
-        setLinkUrl(parsed.linkUrl || DEFAULT_SETTINGS.linkUrl);
-      } catch (e) {
-        console.error("Failed to parse settings", e);
+        const data = await api.getCmsSetting<FlashLineSettings>('flashLine');
+        if (data) {
+          setPromoText(data.promoText || DEFAULT_SETTINGS.promoText);
+          setFreeDeliveryText(data.freeDeliveryText || DEFAULT_SETTINGS.freeDeliveryText);
+          setDiscountCodeText(data.discountCodeText || DEFAULT_SETTINGS.discountCodeText);
+          setLinkText(data.linkText || DEFAULT_SETTINGS.linkText);
+          setLinkUrl(data.linkUrl || DEFAULT_SETTINGS.linkUrl);
+        }
+      } catch (err) {
+        console.error('Failed to load flash line settings from CMS API:', err);
       }
-    }
+    };
+    fetchFlashLine();
   }, []);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const settings: FlashLineSettings = {
       promoText,
@@ -54,20 +57,29 @@ export default function AdminFlashLinePage() {
       linkText,
       linkUrl
     };
-    localStorage.setItem('hossen_shop_flash_line_settings', JSON.stringify(settings));
-    showToast('Flash Line settings saved successfully!');
+    try {
+      await api.updateCmsSetting<FlashLineSettings>('flashLine', settings);
+      showToast('Flash Line settings saved successfully!');
+    } catch (err) {
+      console.error('Failed to save flash line settings to CMS API:', err);
+      showToast('Failed to save settings.');
+    }
   };
 
-  const handleRestoreDefaults = () => {
+  const handleRestoreDefaults = async () => {
     setPromoText(DEFAULT_SETTINGS.promoText);
     setFreeDeliveryText(DEFAULT_SETTINGS.freeDeliveryText);
     setDiscountCodeText(DEFAULT_SETTINGS.discountCodeText);
     setLinkText(DEFAULT_SETTINGS.linkText);
     setLinkUrl(DEFAULT_SETTINGS.linkUrl);
     
-    const settings: FlashLineSettings = DEFAULT_SETTINGS;
-    localStorage.setItem('hossen_shop_flash_line_settings', JSON.stringify(settings));
-    showToast('Restored default settings!');
+    try {
+      await api.updateCmsSetting<FlashLineSettings>('flashLine', DEFAULT_SETTINGS);
+      showToast('Restored default settings!');
+    } catch (err) {
+      console.error('Failed to save defaults to CMS API:', err);
+      showToast('Failed to restore default settings.');
+    }
   };
 
   const showToast = (msg: string) => {

@@ -2,32 +2,32 @@
 
 import React, { useState, useEffect } from 'react';
 import { Settings, Plus, Trash2, RotateCcw, CheckCircle } from 'lucide-react';
-import { DEFAULT_SITE_SETTINGS, SiteSettings, FooterLink } from '../../lib/SiteContentContext';
+import { useSiteContent, DEFAULT_SITE_SETTINGS, SiteSettings, FooterLink } from '../../lib/SiteContentContext';
 
 const makeId = () => Math.random().toString(36).slice(2, 9);
 
 export default function AdminSiteSettingsPage() {
+  const { siteSettings, updateSiteSettings } = useSiteContent();
   const [form, setForm] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hossen_cms_site');
-      if (raw) setForm({ ...DEFAULT_SITE_SETTINGS, ...JSON.parse(raw) });
-    } catch { /* ignore */ }
-  }, []);
+    if (siteSettings) {
+      setForm(siteSettings);
+    }
+  }, [siteSettings]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('hossen_cms_site', JSON.stringify(form));
+    updateSiteSettings(form);
     showToast('Site settings saved!');
   };
 
   const handleReset = () => {
     setForm(DEFAULT_SITE_SETTINGS);
-    localStorage.setItem('hossen_cms_site', JSON.stringify(DEFAULT_SITE_SETTINGS));
+    updateSiteSettings(DEFAULT_SITE_SETTINGS);
     showToast('Restored defaults!');
   };
 

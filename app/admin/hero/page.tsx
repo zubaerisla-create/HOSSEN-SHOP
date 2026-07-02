@@ -2,30 +2,30 @@
 
 import React, { useState, useEffect } from 'react';
 import { ImageIcon, RotateCcw, CheckCircle } from 'lucide-react';
-import { DEFAULT_HERO, HeroContent } from '../../lib/SiteContentContext';
+import { useSiteContent, DEFAULT_HERO, HeroContent } from '../../lib/SiteContentContext';
 
 export default function AdminHeroPage() {
+  const { hero, updateHero } = useSiteContent();
   const [form, setForm] = useState<HeroContent>(DEFAULT_HERO);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hossen_cms_hero');
-      if (raw) setForm({ ...DEFAULT_HERO, ...JSON.parse(raw) });
-    } catch { /* ignore */ }
-  }, []);
+    if (hero) {
+      setForm(hero);
+    }
+  }, [hero]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('hossen_cms_hero', JSON.stringify(form));
+    updateHero(form);
     showToast('Hero section saved!');
   };
 
   const handleReset = () => {
     setForm(DEFAULT_HERO);
-    localStorage.setItem('hossen_cms_hero', JSON.stringify(DEFAULT_HERO));
+    updateHero(DEFAULT_HERO);
     showToast('Restored defaults!');
   };
 

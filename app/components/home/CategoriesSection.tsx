@@ -3,19 +3,32 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { categories as defaultCategories } from '../../lib/mockData';
+import { api } from '../../lib/api';
 
 export const CategoriesSection: React.FC = () => {
   const [categoriesList, setCategoriesList] = useState(defaultCategories);
 
   useEffect(() => {
-    const saved = localStorage.getItem('hossen_shop_admin_categories');
-    if (saved) {
+    const loadCategories = async () => {
       try {
-        setCategoriesList(JSON.parse(saved));
-      } catch (e) {
-        console.error(e);
+        const data = await api.getCategories();
+        if (data && data.length > 0) {
+          setCategoriesList(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch categories from API:', err);
+        // Fallback to localStorage
+        const saved = localStorage.getItem('hossen_shop_admin_categories');
+        if (saved) {
+          try {
+            setCategoriesList(JSON.parse(saved));
+          } catch (e) {
+            console.error(e);
+          }
+        }
       }
-    }
+    };
+    loadCategories();
   }, []);
 
   return (

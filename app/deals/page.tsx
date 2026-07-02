@@ -7,30 +7,39 @@ import ProductCard from '../components/ui/ProductCard';
 import { products as defaultProducts } from '../lib/mockData';
 import { Zap } from 'lucide-react';
 
+import { api } from '../lib/api';
+
 export default function DealsPage() {
   const [productsList, setProductsList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedProds = localStorage.getItem('hossen_shop_admin_products');
-    if (savedProds) {
+    const fetchDeals = async () => {
       try {
-        setProductsList(JSON.parse(savedProds));
-      } catch {
+        const data = await api.getProducts();
+        if (data && data.length > 0) {
+          setProductsList(data);
+        } else {
+          setProductsList(defaultProducts);
+        }
+      } catch (err) {
+        console.error('Failed to fetch deals from API:', err);
         setProductsList(defaultProducts);
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      setProductsList(defaultProducts);
-    }
-    setIsLoading(false);
+    };
+    fetchDeals();
   }, []);
 
   const dealProducts = useMemo(() => {
     if (isLoading) return [];
-    const configured = productsList.filter(p => p.isFlashDeal);
-    if (configured.length > 0) return configured;
+    
+    // Filter products that have a discount
+    const discounted = productsList.filter(p => p.discount && p.discount > 0);
+    if (discounted.length > 0) return discounted;
 
-    // Fallback to initial mock names if no flags set yet
+    // Fallback to initial mock names
     const fallback = ['Wheat Flour 5kg','Barley 1kg','Brown Rice 1kg','Apple 1 kg','Paneer 200g','Eggs 12 pcs','Coca-Cola 1.5L','Orange 1 kg'];
     return fallback.map(n => productsList.find(p => p.name === n)).filter(Boolean);
   }, [productsList, isLoading]);

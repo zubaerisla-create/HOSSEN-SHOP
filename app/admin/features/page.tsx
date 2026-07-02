@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Star, ChevronUp, ChevronDown, RotateCcw, CheckCircle } from 'lucide-react';
-import { DEFAULT_FEATURES, FeatureItem } from '../../lib/SiteContentContext';
+import { useSiteContent, DEFAULT_FEATURES, FeatureItem } from '../../lib/SiteContentContext';
 
 const ICON_OPTIONS: { value: FeatureItem['iconName']; label: string }[] = [
   { value: 'delivery', label: '🚚 Delivery' },
@@ -12,27 +12,34 @@ const ICON_OPTIONS: { value: FeatureItem['iconName']; label: string }[] = [
 ];
 
 export default function AdminFeaturesPage() {
+  const { features: contextFeatures, updateFeatures } = useSiteContent();
   const [features, setFeatures] = useState<FeatureItem[]>(DEFAULT_FEATURES);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hossen_cms_features');
-      if (raw) setFeatures(JSON.parse(raw));
-    } catch { /* ignore */ }
-  }, []);
+    if (contextFeatures && contextFeatures.length > 0) {
+      setFeatures(contextFeatures);
+    }
+  }, [contextFeatures]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('hossen_cms_features', JSON.stringify(features));
+    updateFeatures(features);
     showToast('Feature bar saved!');
   };
 
   const handleReset = () => {
-    setFeatures(DEFAULT_FEATURES);
-    localStorage.setItem('hossen_cms_features', JSON.stringify(DEFAULT_FEATURES));
+    // Reset to defaults but keep IDs
+    const resetFeatures = features.map((f, idx) => ({
+      ...f,
+      title: DEFAULT_FEATURES[idx]?.title || f.title,
+      subtitle: DEFAULT_FEATURES[idx]?.subtitle || f.subtitle,
+      iconName: DEFAULT_FEATURES[idx]?.iconName || f.iconName,
+    }));
+    setFeatures(resetFeatures);
+    updateFeatures(resetFeatures);
     showToast('Restored defaults!');
   };
 

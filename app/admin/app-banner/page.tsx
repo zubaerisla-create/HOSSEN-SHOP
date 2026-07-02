@@ -2,31 +2,31 @@
 
 import React, { useState, useEffect } from 'react';
 import { Smartphone, RotateCcw, CheckCircle } from 'lucide-react';
-import { DEFAULT_APP_BANNER, AppBannerContent } from '../../lib/SiteContentContext';
+import { useSiteContent, DEFAULT_APP_BANNER, AppBannerContent } from '../../lib/SiteContentContext';
 
 export default function AdminAppBannerPage() {
+  const { appBanner, updateAppBanner } = useSiteContent();
   const [form, setForm] = useState<AppBannerContent>(DEFAULT_APP_BANNER);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hossen_cms_appbanner');
-      if (raw) setForm({ ...DEFAULT_APP_BANNER, ...JSON.parse(raw) });
-    } catch { /* ignore */ }
-  }, []);
+    if (appBanner) {
+      setForm(appBanner);
+    }
+  }, [appBanner]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
   const set = (key: keyof AppBannerContent, val: string) => setForm(f => ({ ...f, [key]: val }));
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('hossen_cms_appbanner', JSON.stringify(form));
+    updateAppBanner(form);
     showToast('App Banner saved!');
   };
 
   const handleReset = () => {
     setForm(DEFAULT_APP_BANNER);
-    localStorage.setItem('hossen_cms_appbanner', JSON.stringify(DEFAULT_APP_BANNER));
+    updateAppBanner(DEFAULT_APP_BANNER);
     showToast('Restored defaults!');
   };
 

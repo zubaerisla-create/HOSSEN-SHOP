@@ -7,7 +7,9 @@ import Header from '../../components/layout/Header';
 import Footer from '../../components/home/Footer';
 import ProductCard from '../../components/ui/ProductCard';
 import { products } from '../../lib/mockData';
+import { api } from '../../lib/api';
 import { useCart } from '../../lib/CartContext';
+import { useEffect } from 'react';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -19,9 +21,42 @@ export default function ProductDetailPage({ params }: PageProps) {
   const id = resolvedParams.id;
   const { addToCart } = useCart();
 
-  // Find target product
-  const product = useMemo(() => {
-    return products.find((p) => p.id === id);
+  const [product, setProduct] = useState<any | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const data = await api.getProductById(id);
+        if (data) {
+          setProduct({
+            id: data.id,
+            name: data.name,
+            price: data.price,
+            originalPrice: data.originalPrice || undefined,
+            unit: data.unit,
+            image: data.image,
+            category: data.category?.name || 'Fruits & Vegetables',
+            rating: data.rating || 4.5,
+            ratingCount: data.ratingCount || 12,
+            discount: data.discount || undefined,
+          });
+        } else {
+          // Fallback
+          const mockItem = products.find((p) => p.id === id);
+          setProduct(mockItem || null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch product detail from API:', err);
+        // Fallback
+        const mockItem = products.find((p) => p.id === id);
+        setProduct(mockItem || null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
   }, [id]);
 
   // Quantity Counter State
@@ -142,6 +177,18 @@ export default function ProductDetailPage({ params }: PageProps) {
     const codes = product.name.charCodeAt(0) + product.name.charCodeAt(product.name.length - 1);
     return (codes % 60) + 40; // Generate realistic stable stock count 40-100
   }, [product]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-site-bg">
+        <Header />
+        <main className="flex-grow flex items-center justify-center py-20">
+          <div className="text-brand-green font-medium font-serif text-lg animate-pulse">Loading Product Details...</div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
