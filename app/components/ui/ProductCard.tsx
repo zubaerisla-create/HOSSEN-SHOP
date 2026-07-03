@@ -14,6 +14,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showFlashBadg
   const { id, name, rating, ratingCount, price, unit, originalPrice, discount, image } = product;
   const { addToCart } = useCart();
 
+  const isFlash = product.isFlashDeal;
+  let displayPrice = price;
+  let displayOriginalPrice = originalPrice;
+
+  if (isFlash && product.flashDiscount && product.flashDiscount > 0) {
+    if (!originalPrice) {
+      displayOriginalPrice = price;
+      displayPrice = price * (1 - product.flashDiscount / 100);
+    } else {
+      displayPrice = originalPrice * (1 - product.flashDiscount / 100);
+    }
+  }
+
+  const activeDiscount = isFlash ? (product.flashDiscount || discount) : discount;
+
+  const cartProduct = {
+    ...product,
+    price: displayPrice,
+    originalPrice: displayOriginalPrice,
+    discount: activeDiscount ? Math.round(activeDiscount) : undefined
+  };
+
   return (
     <div className="group relative bg-white rounded-2xl p-4 flex flex-col justify-between border border-neutral-100 hover:shadow-md hover:border-neutral-200 transition-all duration-300">
       
@@ -22,9 +44,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showFlashBadg
         {/* Product Image Container */}
         <div className="aspect-square w-full relative mb-3 flex items-center justify-center overflow-hidden rounded-xl bg-neutral-50 p-4">
           {/* Flash Deal Badge or Discount Badge */}
-          {showFlashBadge ? (
+          {isFlash ? (
             <span className="absolute top-2.5 left-2.5 z-10 bg-gradient-to-r from-[#FF5C00] to-[#FF8C00] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg tracking-wider flex items-center gap-1 shadow-sm shadow-orange-200">
-              ⚡ Flash Deal
+              ⚡ {product.flashLabel || 'Flash Deal'}
             </span>
           ) : discount ? (
             <span className="absolute top-2.5 left-2.5 z-10 bg-[#FF5C00] text-white text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wider">
@@ -64,17 +86,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showFlashBadg
         <div className="flex items-end justify-between mt-auto pt-1">
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1">
-              <span className="text-base md:text-lg font-bold text-neutral-900">${price.toFixed(1)}</span>
+              <span className="text-base md:text-lg font-bold text-neutral-900">${displayPrice.toFixed(2)}</span>
               <span className="text-xs text-neutral-400">/{unit}</span>
             </div>
-            {originalPrice && (
-              <span className="text-xs text-neutral-400 line-through">${originalPrice.toFixed(1)}</span>
+            {displayOriginalPrice && (
+              <span className="text-xs text-neutral-400 line-through">${displayOriginalPrice.toFixed(2)}</span>
             )}
           </div>
 
           {/* Add Button */}
           <button
-            onClick={() => addToCart(product, 1)}
+            onClick={() => addToCart(cartProduct, 1)}
             className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-orange text-white hover:bg-brand-orange-hover hover:scale-105 transition-all duration-200 active:scale-95 shadow-sm shadow-brand-orange/20 cursor-pointer"
           >
             <svg

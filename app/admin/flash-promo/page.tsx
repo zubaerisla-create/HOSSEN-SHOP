@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
+import { useSiteContent } from '../../lib/SiteContentContext';
 
 interface PromoSettings {
   title: string;
@@ -12,6 +13,8 @@ interface PromoSettings {
 }
 
 export default function AdminFlashPromoPage() {
+  const { flashPromo, updateFlashPromo } = useSiteContent();
+
   const [title, setTitle] = useState('Fresh Harvest Flash Deals!');
   const [badge, setBadge] = useState('⚡ Limited Time Only');
   const [description, setDescription] = useState('Unlock exclusive discounts up to 40% OFF on fresh organic produce. Hand-picked and delivered direct to your door!');
@@ -19,24 +22,35 @@ export default function AdminFlashPromoPage() {
   const [buttonText, setButtonText] = useState('Shop Deals Now');
   
   const [toastMessage, setToastMessage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'upload' | 'url'>('upload');
 
   useEffect(() => {
-    const fetchPromo = async () => {
+    if (flashPromo) {
+      setTitle(flashPromo.title || '');
+      setBadge(flashPromo.badge || '');
+      setDescription(flashPromo.description || '');
+      setImage(flashPromo.image || '');
+      setButtonText(flashPromo.buttonText || '');
+    }
+  }, [flashPromo]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
       try {
-        const data = await api.getCmsSetting<PromoSettings>('flashPromo');
-        if (data) {
-          setTitle(data.title || '');
-          setBadge(data.badge || '');
-          setDescription(data.description || '');
-          setImage(data.image || '');
-          setButtonText(data.buttonText || '');
-        }
-      } catch (err) {
-        console.error('Failed to load flash promo settings from CMS API:', err);
+        const res = await api.uploadImage(file);
+        setImage(res.url);
+        showToast('Image uploaded successfully!');
+      } catch (err: any) {
+        console.error(err);
+        showToast(err.message || 'Image upload failed.');
+      } finally {
+        setIsUploading(false);
       }
-    };
-    fetchPromo();
-  }, []);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +63,7 @@ export default function AdminFlashPromoPage() {
     };
     try {
       await api.updateCmsSetting<PromoSettings>('flashPromo', settings);
+      updateFlashPromo(settings);
       showToast('Promo settings saved successfully!');
     } catch (err) {
       console.error('Failed to save flash promo settings to CMS API:', err);
@@ -138,17 +153,68 @@ export default function AdminFlashPromoPage() {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Promo Image URL</label>
-            <input
-              type="text"
-              required
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="/images/flash_deal_promo.png"
-              className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-[#0F2C1F]/45 transition-all text-neutral-800 font-medium"
-            />
-            <p className="text-[10px] text-neutral-400 font-semibold mt-0.5">Use `/images/flash_deal_promo.png` for default custom graphic.</p>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Promo Image</label>
+            
+            <div className="flex bg-neutral-100 rounded-xl p-1 text-xs font-bold text-neutral-500">
+              <button
+                type="button"
+                onClick={() => setUploadMode('upload')}
+                className={`flex-grow py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  uploadMode === 'upload' ? 'bg-white text-[#0F2C1F] shadow-sm' : 'hover:text-neutral-800'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5 text-brand-green" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                Upload File
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode('url')}
+                className={`flex-grow py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  uploadMode === 'url' ? 'bg-white text-[#0F2C1F] shadow-sm' : 'hover:text-neutral-800'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                </svg>
+                Image URL
+              </button>
+            </div>
+
+            <div className="mt-1">
+              {uploadMode === 'upload' && (
+                <div className="flex flex-col items-center justify-center border-2 border-dashed border-neutral-200 rounded-2xl p-6 bg-neutral-50/50 hover:bg-neutral-50 transition-all relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploading}
+                    onChange={handleFileUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <svg className="w-8 h-8 text-neutral-300 mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  <span className="text-xs font-bold text-neutral-600">
+                    {isUploading ? 'Uploading image...' : 'Click to select and upload file from PC'}
+                  </span>
+                  <span className="text-[10px] text-neutral-400 mt-1">PNG, JPG, WEBP, or SVG</span>
+                </div>
+              )}
+
+              {uploadMode === 'url' && (
+                <input
+                  type="text"
+                  required
+                  value={image}
+                  onChange={(e) => setImage(e.target.value)}
+                  placeholder="/images/flash_deal_promo.png"
+                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-[#0F2C1F]/45 transition-all text-neutral-800 font-medium"
+                />
+              )}
+            </div>
+            <p className="text-[10px] text-neutral-400 font-semibold mt-0.5">Use a custom graphic or default `/images/flash_deal_promo.png`.</p>
           </div>
 
           <div className="flex flex-col gap-1.5">

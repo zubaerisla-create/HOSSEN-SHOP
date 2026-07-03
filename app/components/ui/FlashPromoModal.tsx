@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSiteContent } from '../../lib/SiteContentContext';
 
 export default function FlashPromoModal() {
   const router = useRouter();
@@ -9,31 +10,11 @@ export default function FlashPromoModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Dynamic promo values
-  const [title, setTitle] = useState('Fresh Harvest Flash Deals!');
-  const [badge, setBadge] = useState('⚡ Limited Time Only');
-  const [description, setDescription] = useState('Unlock exclusive discounts up to 40% OFF on fresh organic produce. Hand-picked and delivered direct to your door!');
-  const [image, setImage] = useState('/images/flash_deal_promo.png');
-  const [buttonText, setButtonText] = useState('Shop Deals Now');
+  const { flashPromo, isLoaded } = useSiteContent();
 
   useEffect(() => {
     setMounted(true);
     
-    // Load promo settings
-    const saved = localStorage.getItem('hossen_shop_flash_promo_settings');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.title) setTitle(parsed.title);
-        if (parsed.badge) setBadge(parsed.badge);
-        if (parsed.description) setDescription(parsed.description);
-        if (parsed.image) setImage(parsed.image);
-        if (parsed.buttonText) setButtonText(parsed.buttonText);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
     const isShown = localStorage.getItem('hossen_shop_flash_promo_shown');
     if (!isShown) {
       // Delay slightly for premium page transition experience
@@ -59,7 +40,9 @@ export default function FlashPromoModal() {
     router.push('/deals');
   };
 
-  if (!mounted || !isOpen) return null;
+  if (!mounted || !isOpen || !isLoaded || !flashPromo) return null;
+
+  const { title, badge, description, image, buttonText } = flashPromo;
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${

@@ -15,8 +15,8 @@ interface AdminProduct {
   image: string;
   discount?: number;
   isFlashDeal?: boolean;
-  flashLabel?: string;
-  flashDiscount?: number;
+  flashLabel?: string | null;
+  flashDiscount?: number | null;
 }
 
 export default function AdminFlashDealsPage() {
@@ -57,8 +57,8 @@ export default function AdminFlashDealsPage() {
     if (!p) return;
     const updated = {
       ...p,
-      flashLabel: editLabel.trim() || undefined,
-      flashDiscount: editDiscount ? parseFloat(editDiscount) : undefined
+      flashLabel: editLabel.trim() || null,
+      flashDiscount: editDiscount ? parseFloat(editDiscount) : null
     };
     await updateProduct(updated);
     setEditingId(null);

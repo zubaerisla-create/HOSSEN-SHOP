@@ -20,8 +20,8 @@ export interface AdminProduct {
   discount?: number;
   createdAt?: string;
   isFlashDeal?: boolean;
-  flashLabel?: string;
-  flashDiscount?: number;
+  flashLabel?: string | null;
+  flashDiscount?: number | null;
 }
 
 export interface OrderItem {
@@ -262,8 +262,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         categoryId: cat.id,
         discount: p.discount ? Number(p.discount) : undefined,
         isFlashDeal: p.isFlashDeal,
-        flashLabel: p.flashLabel,
-        flashDiscount: p.flashDiscount ? Number(p.flashDiscount) : undefined,
+        flashLabel: p.isFlashDeal ? (p.flashLabel || null) : null,
+        flashDiscount: p.isFlashDeal ? (p.flashDiscount !== undefined && p.flashDiscount !== null ? Number(p.flashDiscount) : null) : null,
       });
       await fetchProducts();
     } catch (err) {

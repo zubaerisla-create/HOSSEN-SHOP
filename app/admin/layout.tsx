@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AdminProvider, useAdmin } from './AdminContext';
-import { ChevronDown, Menu, X } from 'lucide-react';
+import { ChevronDown, Menu, X, Key } from 'lucide-react';
 
 // ── Nav data ────────────────────────────────────────────────
 interface NavItem { label: string; href: string; icon: React.ReactNode }
@@ -137,11 +137,25 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginAdmin(email, password)) setLoginError('Invalid email or password credentials');
+    const success = await loginAdmin(email, password);
+    if (!success) setLoginError('Invalid email or password credentials');
     else setLoginError('');
+  };
+
+  const handleDemoLogin = async () => {
+    setIsDemoLoading(true);
+    setLoginError('');
+    setEmail('admin.nexolve@gmail.com');
+    setPassword('nexolve@admin');
+    const success = await loginAdmin('admin.nexolve@gmail.com', 'nexolve@admin');
+    if (!success) {
+      setLoginError('Invalid email or password credentials');
+    }
+    setIsDemoLoading(false);
   };
 
   const handleLogout = () => { logoutAdmin(); router.push('/'); };
@@ -154,6 +168,36 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <h1 className="font-serif text-2xl font-bold text-neutral-900">Admin Authentication</h1>
             <p className="text-xs text-neutral-400 font-semibold">Enter your credentials to access the admin dashboard</p>
           </div>
+
+          {/* Quick Demo Login Option */}
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={isDemoLoading}
+            className="w-full py-3.5 px-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-400 text-amber-900 transition-all flex items-center justify-between gap-3 text-xs font-medium cursor-pointer group active:scale-[0.98] disabled:opacity-50"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-amber-100 text-amber-700 group-hover:bg-amber-200 transition-colors">
+                <Key className="w-4 h-4" />
+              </div>
+              <div className="text-left font-sans">
+                <div className="font-bold text-amber-950 flex items-center gap-1.5">
+                  Demo Login
+                  <span className="inline-block px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide bg-amber-200/60 text-amber-800 rounded">
+                    Quick Access
+                  </span>
+                </div>
+                <div className="text-[10px] text-amber-700/80">admin.nexolve@gmail.com</div>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-amber-700 group-hover:text-amber-800 flex items-center gap-0.5">
+              {isDemoLoading ? 'Signing in...' : 'Sign In'}
+              <svg className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </span>
+          </button>
+
           {loginError && (
             <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold border border-red-100">{loginError}</div>
           )}

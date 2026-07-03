@@ -73,6 +73,30 @@ export default function AdminSendEmailPage() {
   const [subject, setSubject] = useState(TEMPLATES[0].subject);
   const [body, setBody] = useState(TEMPLATES[0].body);
 
+  // Search & Selection State/Handlers
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery) return customers;
+    const q = searchQuery.toLowerCase();
+    return customers.filter(
+      c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+    );
+  }, [customers, searchQuery]);
+
+  const handleSelectAll = () => {
+    const filteredEmails = filteredCustomers.map(c => c.email);
+    setSelectedEmails(prev => {
+      const union = new Set([...prev, ...filteredEmails]);
+      return Array.from(union);
+    });
+  };
+
+  const handleDeselectAll = () => {
+    const filteredEmails = filteredCustomers.map(c => c.email);
+    setSelectedEmails(prev => prev.filter(e => !filteredEmails.includes(e)));
+  };
+
   // Status & History State
   const [sentHistory, setSentHistory] = useState<SentEmail[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -355,31 +379,81 @@ export default function AdminSendEmailPage() {
 
               {/* Recipient Input modes rendering */}
               {recipientMode === 'select' && (
-                <div className="border border-neutral-100 rounded-2xl p-4 bg-neutral-50/50 max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {customers.map(c => {
-                    const isSelected = selectedEmails.includes(c.email);
-                    return (
-                      <label
-                        key={c.email}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium cursor-pointer transition-all ${
-                          isSelected
-                            ? 'bg-white border-brand-green/40 shadow-sm'
-                            : 'bg-transparent border-neutral-200 hover:bg-neutral-50'
-                        }`}
+                <div className="flex flex-col gap-3">
+                  {/* Search and Selection Tools */}
+                  <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                    <div className="relative w-full sm:max-w-xs">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="Search by name or email..."
+                        className="w-full pl-9 pr-8 py-2 rounded-xl border border-neutral-200 text-xs focus:outline-none focus:ring-1 focus:ring-brand-green/30 focus:border-brand-green/30"
+                      />
+                      <svg className="absolute left-3 top-2.5 w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-3 top-2 text-neutral-400 hover:text-neutral-600 text-xs cursor-pointer font-bold"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        type="button"
+                        onClick={handleSelectAll}
+                        className="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold rounded-lg text-[11px] cursor-pointer transition-colors active:scale-95"
                       >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleRecipient(c.email)}
-                          className="rounded text-brand-green focus:ring-brand-green w-3.5 h-3.5 cursor-pointer"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-bold text-neutral-800">{c.name}</span>
-                          <span className="text-[10px] text-neutral-400">{c.email}</span>
-                        </div>
-                      </label>
-                    );
-                  })}
+                        Select All ({filteredCustomers.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeselectAll}
+                        className="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold rounded-lg text-[11px] cursor-pointer transition-colors active:scale-95"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+
+                  {filteredCustomers.length === 0 ? (
+                    <div className="text-center py-8 border border-dashed border-neutral-200 rounded-2xl text-xs text-neutral-400 font-medium bg-neutral-50/20">
+                      No customers match your search
+                    </div>
+                  ) : (
+                    <div className="border border-neutral-100 rounded-2xl p-4 bg-neutral-50/50 max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {filteredCustomers.map(c => {
+                        const isSelected = selectedEmails.includes(c.email);
+                        return (
+                          <label
+                            key={c.email}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-white border-brand-green/40 shadow-sm'
+                                : 'bg-transparent border-neutral-200 hover:bg-neutral-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleRecipient(c.email)}
+                              className="rounded text-brand-green focus:ring-brand-green w-3.5 h-3.5 cursor-pointer"
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-bold text-neutral-800">{c.name}</span>
+                              <span className="text-[10px] text-neutral-400">{c.email}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 

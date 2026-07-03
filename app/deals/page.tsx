@@ -35,7 +35,11 @@ export default function DealsPage() {
   const dealProducts = useMemo(() => {
     if (isLoading) return [];
     
-    // Filter products that have a discount
+    // Filter products that are designated as flash deals
+    const flashDeals = productsList.filter(p => p.isFlashDeal);
+    if (flashDeals.length > 0) return flashDeals;
+
+    // Fallback: filter products that have a discount
     const discounted = productsList.filter(p => p.discount && p.discount > 0);
     if (discounted.length > 0) return discounted;
 
