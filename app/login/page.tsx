@@ -211,34 +211,19 @@ function LoginContent() {
             {!isSignUp && (
               <div className="flex flex-col gap-2.5 mt-4 pt-4 border-t border-neutral-100 w-full text-center">
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Quick Fill Demo Credentials</span>
-                <div className="flex gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('admin@hossenshop.com');
-                      setPassword('123456');
-                    }}
-                    className="flex-1 py-2 px-3 border border-[#FF5C00]/20 hover:border-[#FF5C00] rounded-xl text-xs font-bold text-[#FF5C00] bg-[#FF5C00]/5 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-                    </svg>
-                    Demo Admin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('customer@gmail.com');
-                      setPassword('123456');
-                    }}
-                    className="flex-1 py-2 px-3 border border-neutral-200 hover:border-neutral-400 rounded-xl text-xs font-bold text-neutral-600 bg-neutral-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                    </svg>
-                    Demo Customer
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('zubaerislam@gmail.com');
+                    setPassword('123456');
+                  }}
+                  className="w-full py-2.5 px-4 border border-brand-orange/20 hover:border-brand-orange rounded-xl text-xs font-bold text-brand-orange bg-brand-orange/5 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                  Demo User Login
+                </button>
               </div>
             )}
 
